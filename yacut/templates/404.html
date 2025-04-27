@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}404Not Found{% endblock %}
+{% block content %}
+  <main>
+    <section class="container my-5">
+      <h1 class="text-center"><span style="color:red">Ya</span>Cut</h1>
+      <p class="text-center">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <h2 class="text-center">
+            <span style="color:red">404 </span>
+            Короткой ссылки 
+            <span style="color:red"> {{ messages[-1] }} </span>
+            не существует.
+          </h2>
+        {% endif %}
+      {% endwith %} 
+      </p>
+    </section>
+  </main>
+{% endblock %}

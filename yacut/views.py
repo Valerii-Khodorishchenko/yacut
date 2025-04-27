@@ -2,7 +2,7 @@ import random
 import string
 from urllib.parse import unquote
 
-from flask import abort, flash, redirect, render_template, url_for
+from flask import flash, redirect, render_template, url_for
 
 from . import app, db
 from .forms import URLMapForm
@@ -40,6 +40,9 @@ def index_view():
 
 @app.route('/<short>')
 def redirect_to_short(short):
-    if (link := URLMap.query.filter_by(short=short).first()) is not None:
-        return redirect(link.original)
-    abort(404)
+    flash(unquote(url_for(
+        'redirect_to_short', short=short, _external=True
+    )))
+    return redirect(
+        URLMap.query.filter_by(short=short).first_or_404().original
+    )

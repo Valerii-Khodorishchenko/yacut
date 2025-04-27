@@ -11,4 +11,4 @@ from .models import URLMap
 with app.app_context():
     db.create_all()
 
-from . import views
+from . import error_handlers, views
