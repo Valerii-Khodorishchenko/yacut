@@ -9,10 +9,13 @@ from wtforms.validators import (
 )
 
 from .models import URLMap
+from .constants import MAX_SHORT_LENGTH
 
 
 class UniqueURL:
     def __call__(self, form, field):
+        if not field.data:
+            return
         if URLMap.query.filter_by(short=field.data).first() is not None:
             raise ValidationError(
                 'Предложенный вариант короткой ссылки уже существует.'
@@ -31,8 +34,8 @@ class URLMapForm(FlaskForm):
     custom_id = StringField(
         'Ваш вариант короткой ссылки',
         validators=(
-            Length(1, 16, message='Не длиннее 16 символов'),
             Optional(),
+            Length(1, MAX_SHORT_LENGTH, message='Не длиннее 16 символов'),
             UniqueURL()
         )
     )

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}500 Internal Server Error{% endblock %}
+{% block content %}
+  <main>
+    <section class="container my-5">
+      <h1 class="text-center"><span style="color:red">Ya</span>Cut</h1>
+      <p class="text-center">
+          <h3 class="text-center">
+            <span style="color:red">500 </span>
+            {{ message }}</br>
+          </h3>
+          <h5 class="text-center">
+            {{instruction}}
+          </h5>
+      </p>
+    </section>
+  </main>
+{% endblock %}

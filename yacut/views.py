@@ -9,23 +9,30 @@ from .forms import URLMapForm
 from .models import URLMap
 
 
-def get_unique_short_id(length=6):
-    short = ''.join(
-        random.choice(string.ascii_letters + string.digits)
-        for _ in range(length)
-    )
-    if URLMap.query.filter_by(short=short).first() is not None:
-        short = get_unique_short_id()
-    return short
+INSTRUCTION = '''Вернитесь на главную страницу, попробуйте ещё раз
+    или введите свой вариант короткой ссылки'''
+NOT_GET_UNIQUE_SHORT_ID = 'Не удалось сгенерировать короткую ссылку.'
+
+
+def get_unique_short_id(length=6, attempts=10):
+    charset = string.ascii_letters + string.digits
+    for _ in range(attempts):
+        short = ''.join(random.choices(charset, k=length))
+        if URLMap.query.filter_by(short=short).first() is None:
+            return short
+        raise RuntimeError(NOT_GET_UNIQUE_SHORT_ID)
 
 
 @app.route('/', methods=['GET', 'POST'])
 def index_view():
     form = URLMapForm()
     if form.validate_on_submit():
-        short = form.custom_id.data or get_unique_short_id()
-        if URLMap.query.filter_by(short=short).first() is not None:
-            return render_template('index.html', form=form)
+        try:
+            short = form.custom_id.data or get_unique_short_id()
+        except RuntimeError as f:
+            return render_template(
+                '500.html', message=f, instruction=INSTRUCTION
+            )
         url_map = URLMap(
             original=form.original_link.data,
             short=short
@@ -33,15 +40,15 @@ def index_view():
         db.session.add(url_map)
         db.session.commit()
         flash(unquote(url_for(
-            'redirect_to_short', short=short, _external=True
+            'redirect_to_original', short=short, _external=True
         )))
     return render_template('index.html', form=form)
 
 
 @app.route('/<short>')
-def redirect_to_short(short):
+def redirect_to_original(short):
     flash(unquote(url_for(
-        'redirect_to_short', short=short, _external=True
+        'redirect_to_original', short=short, _external=True
     )))
     return redirect(
         URLMap.query.filter_by(short=short).first_or_404().original
