@@ -53,3 +53,17 @@ python3 -m pip install --upgrade pip
 ```
 pip install -r requirements.txt
 ```
+## Запуск
+```bash
+flask run
+```
+## Примеры запросов к API
+Для удобной работы с API воспользуйтесь онлайн-редактором 
+[Swagger Editor](https://editor.swagger.io/), 
+в котором можно визуализировать спецификацию `./openapi.yml`
+
+## Контакты
+**Автор:** Ходорищенко Валерий (Khodorishchenko Valeriy)
+
+[![GitHub](https://img.shields.io/badge/GitHub-%23000000?style=flat&logo=github&logoColor=white)](https://github.com/Valerii-Khodorishchenko)
+[![Telegram](https://img.shields.io/badge/Telegram-%2300A9E0?style=flat&logo=telegram&logoColor=white)](https://t.me/KhodorishchenkoValerii)
