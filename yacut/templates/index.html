@@ -6,7 +6,7 @@
     <p class="text-center my-4">
       Создайте короткую ссылку автоматически или предложите свой вариант
     </p>
-
+    
     <div class="container">
       <div class="row my-3">
         <div class="col-sm">
@@ -17,25 +17,21 @@
             <div>
               <div>
                 {{ form.original_link(class="form-control form-control-lg py-2 mb-3", id="form-title", placeholder=form.original_link.label.text) }}
-                {% if form.original_link.errors %}
                   <p><span style="color:red">
                     {% for error in form.original_link.errors %}
                       {{ error }}
                     {% endfor %}
                   </span></p>
-                {% endif %}
-              </div>
+                </div>
               <div>
                 {{ form.custom_id(class="form-control form-control-lg py-2 mb-3", id="form-link", placeholder=form.custom_id.label.text) }}
-                {% if form.custom_id.errors %}
                   <p><span style="color:red">
                     {% for error in form.custom_id.errors %}
-                      {{ error }}
+                      {{ error }} 
                     {% endfor %}
                   </span></p>
-                {% endif %}
+                {{ form.submit(class="btn btn-primary") }}
               </div>
-              {{ form.submit(class="btn btn-primary") }}
             </div>
           </form>
         </div>
@@ -50,14 +46,12 @@
         </div>
         <div class="col-sm">
           <p class="text-center">
-            {% with messages = get_flashed_messages() %}
-              {% if messages %}
+            {% if short_link %}
                 <h5 class="text-center">
                   <p>Ваша новая ссылка готова</p>
-                  <a href="{{ messages[-1] }}">{{ messages[-1] }}</a>
+                  <a href="{{ short_link}}">{{ short_link}}</a>
                 </h5>
-              {% endif %}
-            {% endwith %}                 
+            {% endif %}         
           </p>
         </div>
         <div class="col-sm">

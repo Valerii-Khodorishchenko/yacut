@@ -8,35 +8,46 @@ from wtforms.validators import (
     ValidationError
 )
 
+from .constants import (
+    MAX_ORIGINAL_LENGTH,
+    MAX_SHORT_LENGTH,
+    MESSAGE_SHORT_TAKEN
+)
 from .models import URLMap
-from .constants import MAX_SHORT_LENGTH
 
 
-class UniqueURL:
-    def __call__(self, form, field):
-        if not field.data:
-            return
-        if URLMap.query.filter_by(short=field.data).first() is not None:
-            raise ValidationError(
-                'Предложенный вариант короткой ссылки уже существует.'
-            )
+MESSAGE_REQUIRED = 'Обязательное поле'
+MESSAGE_TOO_LONG = 'Не длиннее {} символов'
+MESSAGE_NOT_URL = 'Похоже, это не ссылка! Пожалуйста, проверьте адрес.'
+ORIGINAL_LINK_DESCRIPTION = 'Длинная ссылка'
+CUSTOM_ID_DESCRIPTION = 'Ваш вариант короткой ссылки'
+SUBMIT = 'Создать'
 
 
 class URLMapForm(FlaskForm):
     original_link = URLField(
-        'Длинная ссылка',
+        ORIGINAL_LINK_DESCRIPTION,
         validators=(
-            DataRequired(message='Обязательное поле'),
-            Length(1, 2048, message='Это много даже для меня.'),
-            URL(message='Похоже, это не ссылка! Пожалуйста, проверьте адрес.')
+            DataRequired(message=MESSAGE_REQUIRED),
+            Length(
+                max=MAX_ORIGINAL_LENGTH,
+                message=MESSAGE_TOO_LONG.format(MAX_ORIGINAL_LENGTH)
+            ),
+            URL(message=MESSAGE_NOT_URL)
         )
     )
     custom_id = StringField(
-        'Ваш вариант короткой ссылки',
+        CUSTOM_ID_DESCRIPTION,
         validators=(
             Optional(),
-            Length(1, MAX_SHORT_LENGTH, message='Не длиннее 16 символов'),
-            UniqueURL()
+            Length(
+                max=MAX_SHORT_LENGTH,
+                message=MESSAGE_TOO_LONG.format(MAX_SHORT_LENGTH)
+            )
         )
     )
-    submit = SubmitField('Создать')
+    submit = SubmitField(SUBMIT)
+
+    def validate_custom_id(self, field):
+        if field.data.strip() and URLMap.is_short_taken(field.data):
+            raise ValidationError(MESSAGE_SHORT_TAKEN)

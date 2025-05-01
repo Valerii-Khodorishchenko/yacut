@@ -1,51 +1,47 @@
 import re
-from flask import jsonify, request
+from http import HTTPStatus
 
-from . import app, db
-from .constants import MAX_SHORT_LENGTH
+from flask import jsonify, request
+from sqlalchemy.exc import IntegrityError
+
+from . import app
+from .constants import CHARSET, MAX_SHORT_LENGTH, MESSAGE_SHORT_TAKEN
 from .error_handlers import InvalidAPIUsage
 from .models import URLMap
-from .views import get_unique_short_id
 
 
-CUSTOM_ID_PATTERN = re.compile(rf'^[a-zA-Z0-9]{{0,{MAX_SHORT_LENGTH}}}$')
-
-
-def validate_request_data(data):
-    if data is None:
-        raise InvalidAPIUsage('Отсутствует тело запроса')
-    if (original := data.get('url')) is None:
-        raise InvalidAPIUsage('"url" является обязательным полем!')
-    if not (short := data.get('custom_id', '')):
-        try:
-            short = get_unique_short_id()
-        except RuntimeError as e:
-            raise InvalidAPIUsage(str(e), 500)
-    elif not CUSTOM_ID_PATTERN.fullmatch(short):
-        raise InvalidAPIUsage('Указано недопустимое имя для короткой ссылки')
-    return original, short
+SHORT_PATTERN = re.compile(rf'^[{CHARSET}]*$')
+API_ERROR_REQUIRED = '"url" является обязательным полем!'
+API_ERROR_NO_BODY = 'Отсутствует тело запроса'
+API_ERROR_INVALID_SHORT = 'Указано недопустимое имя для короткой ссылки'
+API_ERROR_ID_NOT_FOUND = 'Указанный id не найден'
 
 
 @app.route('/api/id/', methods=['POST'])
-def create_id():
-    original, short = validate_request_data(request.get_json(silent=True))
-    if URLMap.query.filter_by(short=short).first():
-        raise InvalidAPIUsage(
-            'Предложенный вариант короткой ссылки уже существует.'
+def create_url_map():
+    data = request.get_json(silent=True)
+    if data is None:
+        raise InvalidAPIUsage(API_ERROR_NO_BODY)
+    if (original := data.get('url')) is None:
+        raise InvalidAPIUsage(API_ERROR_REQUIRED)
+    short = data.get('custom_id', '')
+    if len(short) > MAX_SHORT_LENGTH or not SHORT_PATTERN.fullmatch(short):
+        raise InvalidAPIUsage(API_ERROR_INVALID_SHORT, HTTPStatus.BAD_REQUEST)
+    try:
+        url_map = URLMap.create(original, short)
+    except IntegrityError:
+        raise InvalidAPIUsage(MESSAGE_SHORT_TAKEN)
+    except RuntimeError as e:
+        raise InvalidAPIUsage(str(e), HTTPStatus.INTERNAL_SERVER_ERROR)
+    return jsonify(url_map.to_dict()), HTTPStatus.CREATED
+
+
+@app.route('/api/id/<short>/', methods=['GET'])
+def get_original(short):
+    try:
+        return (
+            jsonify({'url': URLMap.get_url_map_by_short(short).original}),
+            HTTPStatus.OK
         )
-    adapted_data = {
-        'original': original,
-        'short': short
-    }
-    url_map = URLMap(**adapted_data)
-    db.session.add(url_map)
-    db.session.commit()
-    return jsonify(url_map.to_dict()), 201
-
-
-@app.route('/api/id/<short_id>/', methods=['GET'])
-def get_url(short_id):
-    url = URLMap.query.filter_by(short=short_id).first()
-    if url is None:
-        raise InvalidAPIUsage('Указанный id не найден', 404)
-    return jsonify({'url': url.original}), 200
+    except AttributeError:
+        raise InvalidAPIUsage(API_ERROR_ID_NOT_FOUND, HTTPStatus.NOT_FOUND)

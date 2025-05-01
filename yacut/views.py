@@ -1,55 +1,51 @@
-import random
-import string
-from urllib.parse import unquote
+from http import HTTPStatus
 
-from flask import flash, redirect, render_template, url_for
+from flask import redirect, render_template
+from markupsafe import Markup
 
-from . import app, db
+from . import app
 from .forms import URLMapForm
 from .models import URLMap
 
 
-INSTRUCTION = '''Вернитесь на главную страницу, попробуйте ещё раз
-    или введите свой вариант короткой ссылки'''
+INSTRUCTION = (
+    'Вернитесь на главную страницу, попробуйте ещё раз '
+    'или введите свой вариант короткой ссылки'
+)
 NOT_GET_UNIQUE_SHORT_ID = 'Не удалось сгенерировать короткую ссылку.'
-
-
-def get_unique_short_id(length=6, attempts=10):
-    charset = string.ascii_letters + string.digits
-    for _ in range(attempts):
-        short = ''.join(random.choices(charset, k=length))
-        if URLMap.query.filter_by(short=short).first() is None:
-            return short
-        raise RuntimeError(NOT_GET_UNIQUE_SHORT_ID)
+ERROR_SHORT_LINK_NOT_FOUND = Markup(
+    'Короткой ссылки <span style="color:red">{}</span> не существует.'
+)
 
 
 @app.route('/', methods=['GET', 'POST'])
 def index_view():
     form = URLMapForm()
-    if form.validate_on_submit():
-        try:
-            short = form.custom_id.data or get_unique_short_id()
-        except RuntimeError as f:
-            return render_template(
-                '500.html', message=f, instruction=INSTRUCTION
-            )
-        url_map = URLMap(
-            original=form.original_link.data,
-            short=short
+    if not form.validate_on_submit():
+        return render_template('index.html', form=form)
+    try:
+        url_map = URLMap.create(form.original_link.data, form.custom_id.data)
+    except RuntimeError as e:
+        return render_template(
+            f'{HTTPStatus.INTERNAL_SERVER_ERROR}.html',
+            message=e,
+            instruction=INSTRUCTION
         )
-        db.session.add(url_map)
-        db.session.commit()
-        flash(unquote(url_for(
-            'redirect_to_original', short=short, _external=True
-        )))
-    return render_template('index.html', form=form)
+    return render_template(
+        'index.html',
+        form=form,
+        short_link=URLMap.get_short_link(url_map.short)
+    )
 
 
 @app.route('/<short>')
 def redirect_to_original(short):
-    flash(unquote(url_for(
-        'redirect_to_original', short=short, _external=True
-    )))
-    return redirect(
-        URLMap.query.filter_by(short=short).first_or_404().original
-    )
+    try:
+        return redirect(URLMap.get_url_map_by_short(short).original)
+    except AttributeError:
+        return render_template(
+            f'{HTTPStatus.NOT_FOUND}.html',
+            error=ERROR_SHORT_LINK_NOT_FOUND.format(
+                URLMap.get_short_link(short)
+            ),
+        ), HTTPStatus.NOT_FOUND
