@@ -4,23 +4,29 @@ from wtforms.validators import (
     DataRequired,
     Length,
     Optional,
+    Regexp,
     URL,
     ValidationError
 )
 
 from .constants import (
+    ERROR_INVALID_ORIGINAL,
+    ERROR_INVALID_SHORT,
+    ERROR_SHORT_TAKEN,
     MAX_ORIGINAL_LENGTH,
     MAX_SHORT_LENGTH,
-    MESSAGE_SHORT_TAKEN
+    SHORT_PATTERN
 )
 from .models import URLMap
 
 
 MESSAGE_REQUIRED = 'Обязательное поле'
 MESSAGE_TOO_LONG = 'Не длиннее {} символов'
-MESSAGE_NOT_URL = 'Похоже, это не ссылка! Пожалуйста, проверьте адрес.'
+MESSAGE_TOO_LONG_ORIGINAL = MESSAGE_TOO_LONG.format(MAX_ORIGINAL_LENGTH)
+MESSAGE_TOO_LONG_SHORT = MESSAGE_TOO_LONG.format(MAX_SHORT_LENGTH)
+
 ORIGINAL_LINK_DESCRIPTION = 'Длинная ссылка'
-CUSTOM_ID_DESCRIPTION = 'Ваш вариант короткой ссылки'
+SHORT_DESCRIPTION = 'Ваш вариант короткой ссылки'
 SUBMIT = 'Создать'
 
 
@@ -31,23 +37,27 @@ class URLMapForm(FlaskForm):
             DataRequired(message=MESSAGE_REQUIRED),
             Length(
                 max=MAX_ORIGINAL_LENGTH,
-                message=MESSAGE_TOO_LONG.format(MAX_ORIGINAL_LENGTH)
+                message=MESSAGE_TOO_LONG_ORIGINAL
             ),
-            URL(message=MESSAGE_NOT_URL)
+            URL(message=ERROR_INVALID_ORIGINAL)
         )
     )
     custom_id = StringField(
-        CUSTOM_ID_DESCRIPTION,
+        SHORT_DESCRIPTION,
         validators=(
             Optional(),
             Length(
                 max=MAX_SHORT_LENGTH,
-                message=MESSAGE_TOO_LONG.format(MAX_SHORT_LENGTH)
+                message=MESSAGE_TOO_LONG_SHORT
+            ),
+            Regexp(
+                SHORT_PATTERN,
+                message=ERROR_INVALID_SHORT
             )
         )
     )
     submit = SubmitField(SUBMIT)
 
     def validate_custom_id(self, field):
-        if field.data.strip() and URLMap.is_short_taken(field.data):
-            raise ValidationError(MESSAGE_SHORT_TAKEN)
+        if field.data.strip() and URLMap.get_or_false(field.data):
+            raise ValidationError(ERROR_SHORT_TAKEN)

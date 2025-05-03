@@ -32,3 +32,4 @@ Werkzeug==3.0.0
 WTForms==3.0.1
 zipp==3.18.1
 flask-swagger-ui==4.11.1
+validators==0.35.0
