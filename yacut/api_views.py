@@ -19,19 +19,18 @@ def create_url_map():
         raise InvalidAPIUsage(API_ERROR_NO_BODY)
     if 'url' not in data:
         raise InvalidAPIUsage(API_ERROR_REQUIRED)
-    original = data['url']
-    short = data.get('custom_id')
     try:
-        url_map = URLMap.create(original, short)
+        return jsonify(
+            URLMap.create(data['url'], data.get('custom_id')).to_dict()
+        ), HTTPStatus.CREATED
     except ValueError as e:
         raise InvalidAPIUsage(str(e))
     except RuntimeError as e:
         raise InvalidAPIUsage(str(e), HTTPStatus.INTERNAL_SERVER_ERROR)
-    return jsonify(url_map.to_dict()), HTTPStatus.CREATED
 
 
 @app.route('/api/id/<short>/', methods=['GET'])
 def get_original(short):
-    if not (url_map := URLMap.get_or_false(short)):
+    if not (url_map := URLMap.get(short)):
         raise InvalidAPIUsage(API_ERROR_ID_NOT_FOUND, HTTPStatus.NOT_FOUND)
     return jsonify({'url': url_map.original}), HTTPStatus.OK

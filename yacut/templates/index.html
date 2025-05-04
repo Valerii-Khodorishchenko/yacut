@@ -47,16 +47,15 @@
         <div class="col-sm">
           <p class="text-center">
             <h5 class="text-center">
-              {% with messages = get_flashed_messages(with_categories=true) %}
-                {% for category, message in messages %}
-                  {% if category == 'success' %}
-                    <p>Ваша новая ссылка готова</p>
-                    <a href="{{ message }}">{{ message }}</a>
-                  {% elif category == 'error' %}
+              {% with messages = get_flashed_messages() %}
+                {% for message in messages %}
                     <p><span style="color:red">{{ message }}</span></p>
-                  {% endif %}
                 {% endfor %}
               {% endwith %}
+              {% if short_link %}
+                <p>Ваша новая ссылка готова</p>
+                <a href="{{ short_link }}">{{ short_link }}</a>
+              {% endif%}
             </h5>
           </p>
         </div>

@@ -6,9 +6,6 @@ YaCut - сервис укорачивания ссылок. Его назнач�
 
 ```
 git clone https://github.com/Valerii-Khodorishchenko/yacut
-```
-
-```
 cd yacut
 ```
 Создать и заполнить файл `.env` переменными окружения
@@ -48,9 +45,7 @@ python3 -m venv venv
 
 ```
 python3 -m pip install --upgrade pip
-```
 
-```
 pip install -r requirements.txt
 ```
 ## Запуск

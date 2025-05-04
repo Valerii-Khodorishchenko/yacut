@@ -10,15 +10,17 @@ from wtforms.validators import (
 )
 
 from .constants import (
-    ERROR_INVALID_ORIGINAL,
-    ERROR_INVALID_SHORT,
-    ERROR_SHORT_TAKEN,
+
     MAX_ORIGINAL_LENGTH,
     MAX_SHORT_LENGTH,
     SHORT_PATTERN
 )
-from .models import URLMap
-
+from .models import (
+    URLMap,
+    ERROR_INVALID_ORIGINAL,
+    ERROR_INVALID_SHORT,
+    ERROR_SHORT_TAKEN,
+)
 
 MESSAGE_REQUIRED = 'Обязательное поле'
 MESSAGE_TOO_LONG = 'Не длиннее {} символов'
@@ -59,5 +61,5 @@ class URLMapForm(FlaskForm):
     submit = SubmitField(SUBMIT)
 
     def validate_custom_id(self, field):
-        if field.data.strip() and URLMap.get_or_false(field.data):
+        if field.data.strip() and URLMap.get(field.data):
             raise ValidationError(ERROR_SHORT_TAKEN)

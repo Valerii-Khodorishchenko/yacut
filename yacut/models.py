@@ -2,16 +2,11 @@ import random
 from datetime import datetime, timezone
 
 from flask import url_for
-from validators import url as validate_url
 
 from yacut import db
 from .constants import (
     ATTEMPTS_TO_GENERATE,
     CHARSET,
-    ERROR_INVALID_ORIGINAL,
-    ERROR_INVALID_SHORT,
-    ERROR_SHORT_TAKEN,
-    GET_SHORT_ENDPOINT,
     LENGTH_GENERATED_SHORT,
     MAX_ORIGINAL_LENGTH,
     MAX_SHORT_LENGTH,
@@ -20,6 +15,11 @@ from .constants import (
 
 
 ERROR_UNIQUE_SHORT_FAIL = 'Не удалось сгенерировать короткую ссылку'
+ERROR_INVALID_ORIGINAL = 'Указано недопустимое имя ссылки'
+ERROR_INVALID_SHORT = 'Указано недопустимое имя для короткой ссылки'
+ERROR_SHORT_TAKEN = 'Предложенный вариант короткой ссылки уже существует.'
+
+REDIRECT_FUNCTION = 'redirect_to_original'
 
 
 class URLMap(db.Model):
@@ -39,31 +39,26 @@ class URLMap(db.Model):
         }
 
     def get_short_link(self):
-        return url_for(GET_SHORT_ENDPOINT, short=self.short, _external=True)
+        return url_for(REDIRECT_FUNCTION, short=self.short, _external=True)
 
     @staticmethod
-    def create(original, short=None):
-        URLMap.validate_original(original)
-        if short == '' or short is None:
+    def create(original, short=None, do_validate=True):
+        if do_validate and len(original) > MAX_ORIGINAL_LENGTH:
+            raise ValueError(ERROR_INVALID_ORIGINAL)
+        if not short:
             short = URLMap.generate_unique_short()
-        else:
-            URLMap.validate_short(short)
+        elif do_validate:
+            if (
+                len(short) > MAX_SHORT_LENGTH
+                or not SHORT_PATTERN.fullmatch(short)
+            ):
+                raise ValueError(ERROR_INVALID_SHORT)
+            if URLMap.get(short):
+                raise ValueError(ERROR_SHORT_TAKEN)
         url_map = URLMap(original=original, short=short)
         db.session.add(url_map)
         db.session.commit()
         return url_map
-
-    @staticmethod
-    def validate_original(original):
-        if len(original) > MAX_ORIGINAL_LENGTH or not validate_url(original):
-            raise ValueError(ERROR_INVALID_ORIGINAL)
-
-    @staticmethod
-    def validate_short(short):
-        if len(short) > MAX_SHORT_LENGTH or not SHORT_PATTERN.fullmatch(short):
-            raise ValueError(ERROR_INVALID_SHORT)
-        elif URLMap.get_or_false(short):
-            raise ValueError(ERROR_SHORT_TAKEN)
 
     @staticmethod
     def generate_unique_short():
@@ -71,11 +66,10 @@ class URLMap(db.Model):
             short = ''.join(random.choices(
                 CHARSET, k=LENGTH_GENERATED_SHORT
             ))
-            if not URLMap.get_or_false(short):
+            if not URLMap.get(short):
                 return short
         raise RuntimeError(ERROR_UNIQUE_SHORT_FAIL)
 
     @staticmethod
-    def get_or_false(short=None):
-        url_map = URLMap.query.filter_by(short=short).first()
-        return False if url_map is None else url_map
+    def get(short):
+        return URLMap.query.filter_by(short=short).first()
