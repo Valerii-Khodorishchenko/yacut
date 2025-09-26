@@ -18,7 +18,7 @@ echo "FLASK_APP=yacut" >> .env
 echo "FLASK_DEBUG=0" >> .env
 # Конфигурация базы данных: создаст db.sqlite3 в папке ./instance
 # Используйте любую базу данных, поддерживаемую Flask-SQLAlchemy
-echo "SQLALCHEMY_DATABASE_URI=sqlite:///db.sqlite3" >> .env
+echo "DATABASE_URI=sqlite:///db.sqlite3" >> .env
 # Генерация секретного ключа
 echo "SECRET_KEY=$(python -c 'import secrets; print(secrets.token_urlsafe(32))')" >> .env
 ```
